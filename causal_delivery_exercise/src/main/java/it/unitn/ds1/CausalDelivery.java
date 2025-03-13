@@ -60,8 +60,8 @@ public class CausalDelivery {
 
     // tell the first chatter to start conversation
     // actually, you need to start at least one sender for each topic
-    group.get(0).tell(new StartChatMsg(), null);
-    group.get(2).tell(new StartChatMsg(), null);
+    group.get(0).tell(new StartChatMsg(), null);//start topic a
+    group.get(2).tell(new StartChatMsg(), null);//start topic b
     try {
       System.out.println(">>> Wait for the chats to stop and press ENTER <<<");
       System.in.read();

@@ -155,7 +155,7 @@ class Chatter extends AbstractActor {
      * order so any delivering is correct.
      */
 
-    if((this.vc[msg.senderId]+1) == msg.vc[msg.senderId]){
+    if(canDeliver(msg)){
       //we can deliver the message
       //update vector clock
       for(int k=0; k<this.vc.length; k++){
@@ -190,9 +190,14 @@ class Chatter extends AbstractActor {
   * extactly the global state
   */
   private boolean canDeliver(ChatMsg msg) {
+    //fist condition
+    if ((this.vc[msg.senderId]+1) != msg.vc[msg.senderId])
+      return false;
+
+    //if first condition met, check second condition
     for (int i = 0; i < this.vc.length; i++) {
       if(i != msg.senderId){  
-        if (msg.vc[i] >= this.vc[i]) {
+        if (msg.vc[i] > this.vc[i]) {
               return false;
           }
       }
