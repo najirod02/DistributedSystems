@@ -35,7 +35,7 @@ public class CausalDelivery {
           Chatter.props(id++, "a"), // this one will catch up the topic "a"
           "chatter1"));
 
-    // TODO 1: create additional actors in a different conversation  
+    // TODO 1: create additional actors in a different conversation    
     group.add(system.actorOf(
           Chatter.props(id++, "b"),  // this one will start the topic "b"
           "chatter2")); 
@@ -43,7 +43,7 @@ public class CausalDelivery {
     group.add(system.actorOf(
           Chatter.props(id++, "b"), // this one will catch up the topic "b"
           "chatter3"));
-
+  
     // the rest are silent listeners: they have no topics to discuss
     for (int i=0; i<N_LISTENERS; i++) {
       group.add(system.actorOf(Chatter.props(id++, null), "listener" + i));

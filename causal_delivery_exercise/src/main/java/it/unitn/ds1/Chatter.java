@@ -6,7 +6,9 @@ import java.io.Serializable;
 import akka.actor.Props;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.lang.Thread;
+import java.lang.reflect.Array;
 import java.lang.InterruptedException;
 import java.util.Collections;
 
@@ -25,7 +27,7 @@ class Chatter extends AbstractActor {
   private StringBuffer chatHistory = new StringBuffer();
 
   // TODO 2: provide a buffer for out-of-order messages
-  private List<ChatMsg> chatOutOfOrder = new ArrayList<>();
+  private List<ChatMsg> buffer = new ArrayList<>();
 
   /* -- Message types ------------------------------------------------------- */
   
@@ -126,6 +128,11 @@ class Chatter extends AbstractActor {
       .build();
   }
 
+  @Override
+  public void postStop(){
+    System.out.printf("%s exited the chat with %02d messages left\n", getSelf().path().name(), this.buffer.size());
+  }
+
   private void onJoinGroupMsg(JoinGroupMsg msg) {
     this.group = msg.group;
 
@@ -150,11 +157,10 @@ class Chatter extends AbstractActor {
     // TODO 4: deliver only if the message is in-order
     // TODO 4 hint: once a message is delivered, update the vector clock...
     /*
-     * this strategy allows or total order among messages of the same topic meaning that 
+     * this strategy allows for total order among messages of the same topic meaning that 
      * if i receive two messages from two different topics then there is no defined and correct 
      * order so any delivering is correct.
      */
-
     if(canDeliver(msg)){
       //we can deliver the message
       //update vector clock
@@ -165,28 +171,41 @@ class Chatter extends AbstractActor {
       deliver(msg);
 
       //check if we can deliver previous received messages
-      List<ChatMsg> toRemove = new ArrayList<>();
-      for (ChatMsg bufferedMsg : chatOutOfOrder) {
+      boolean progress = true;
+      while (progress) {
+        //a cyclyc check is needed as there are some edge cases in which
+        //a message could never be delivered as no new messages are received
+        //we cannot base the delivering upon the receiving of new messages
+        progress = false;
+        List<ChatMsg> toRemove = new ArrayList<>();
+        for (ChatMsg bufferedMsg : buffer) {
           if (canDeliver(bufferedMsg)) {
-              deliver(bufferedMsg);
-              toRemove.add(bufferedMsg);
-          }
-      }
+            deliver(bufferedMsg);
 
-      // Remove the delivered messages
-      chatOutOfOrder.removeAll(toRemove);
+            //important to update the vc of the latest message delivered
+            for(int k=0; k<this.vc.length; k++){
+              this.vc[k] = Math.max(this.vc[k], bufferedMsg.vc[k]);
+            }
+
+            toRemove.add(bufferedMsg);
+            progress = true;
+          }
+        }
+        buffer.removeAll(toRemove);
+      }
+      
       return;
     }
 
     //cannot deliver the message
     //we need to save the message in the buffer
-    chatOutOfOrder.add(msg);
+    buffer.add(msg);
   }
 
   /**
   * function to check if a buffered message can now be delivered.
   * it is important that the vc of the reciver has to be greater or equal
-  * than the one of the sender otherwise it means that the agent don't know
+  * than the one of the sender otherwise it means that the actor don't know
   * extactly the global state
   */
   private boolean canDeliver(ChatMsg msg) {
