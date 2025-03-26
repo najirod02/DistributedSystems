@@ -10,17 +10,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.Random;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
 import java.lang.Thread;
 import java.lang.InterruptedException;
 import java.util.Collections;
 
-
 // The bank branch actor
 public class Bank extends AbstractActor {
   private int id;                                     // bank ID
-  private int balance = 1000;                         // balance
+  private int balance = 1000;                         // balance (the initla one)
   private List<ActorRef> peers = new ArrayList<>();   // list of peer banks
   private int snapId = -1;                             // current snapshot ID
   private Random rnd = new Random();
@@ -125,6 +125,12 @@ public class Bank extends AbstractActor {
     // and thus has as a result "string01" and not "string1"
 
     // TODO 1: Save current balance and enter snapshot mode.
+    this.capturedBalance = this.balance;
+    this.stateBeingCaptured = true;
+
+    //send token message to all other peers
+    //so that also they start the snapshot procedure
+    sendTokens();
   }
 
   private void onJoinGroupMsg(JoinGroupMsg msg) {
@@ -134,7 +140,7 @@ public class Bank extends AbstractActor {
       }
     }
     System.out.println("" + id + ": starting with " + 
-        msg.group.size() + " peer(s)");
+        msg.group.size() + " peer(s) and " + this.balance + " balance.");
     getSelf().tell(new NextTransfer(), getSelf());  // schedule 1st transaction 
   }
 
@@ -147,6 +153,12 @@ public class Bank extends AbstractActor {
     balance += msg.amount;
 
     // TODO 2: implement logic for Money messages during the snapshot
+    if(this.stateBeingCaptured && !tokensReceived.contains(getSender())){
+      //in snapshot mode, need to "store" messages received
+      //this means that not only we update the total balance but also count
+      //how much has transited during snap mode.
+      this.moneyInTransit+=msg.amount;
+    }
   }
 
   private void onToken(Token token) {
@@ -160,7 +172,27 @@ public class Bank extends AbstractActor {
     // TODO 3: manage the first Token reception and the snapshot termination for this node
     // You can assume there aren't multiple snapshots running concurrently
     // Remember that tokens are also used to start the snapshot process
-    captureState();
+    
+    //if first token received
+    if(!this.stateBeingCaptured)
+      captureState();//implicitly it will send tokens to all other nodes
+
+    //add new token received from sender
+    //this is to say that the link has been already "activated"
+    tokensReceived.add(getSender());
+
+    //if received all tokens
+    if(tokensReceived.size() >= this.peers.size()){
+      //print results and reset all values
+      //in order to check if the snapshot was correct, the balance is given from the sum
+      //of the captured balance and the money in transit
+      System.out.println("Bank " + id + " snapId: "+ snapId + " balance: " + (moneyInTransit + capturedBalance));
+
+      this.stateBeingCaptured = false;
+      this.moneyInTransit = 0;
+      this.capturedBalance = 0;
+      this.tokensReceived.clear();
+    }
   }
 
   private void onStartSnapshot(StartSnapshot msg) {

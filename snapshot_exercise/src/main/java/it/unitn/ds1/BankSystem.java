@@ -13,7 +13,7 @@ import it.unitn.ds1.Bank.JoinGroupMsg;
 import it.unitn.ds1.Bank.StartSnapshot;
 
 public class BankSystem {
-  final static int N_BRANCHES = 10;
+  final static int N_BRANCHES = 10;//the number of bansk in the system
 
   public static void main(String[] args) {
     // Create the actor system
@@ -22,6 +22,7 @@ public class BankSystem {
     // Create bank branches and put them to a list
     List<ActorRef> group = new ArrayList<>();
     for (int i=0; i<N_BRANCHES; i++) {
+      //in this case only the bank 0 will start the snapshot
       group.add(system.actorOf(Bank.props(i, i == 0), "bank" + i));
     }
 
