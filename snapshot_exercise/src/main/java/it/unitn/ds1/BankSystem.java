@@ -13,7 +13,7 @@ import it.unitn.ds1.Bank.JoinGroupMsg;
 import it.unitn.ds1.Bank.StartSnapshot;
 
 public class BankSystem {
-  final static int N_BRANCHES = 10;//the number of bansk in the system
+  final static int N_BRANCHES = 10;//the number of banks in the system
 
   public static void main(String[] args) {
     // Create the actor system

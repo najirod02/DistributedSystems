@@ -20,7 +20,7 @@ import java.util.Collections;
 // The bank branch actor
 public class Bank extends AbstractActor {
   private int id;                                     // bank ID
-  private int balance = 1000;                         // balance (the initla one)
+  private int balance = 1000;                         // balance (the initial one)
   private List<ActorRef> peers = new ArrayList<>();   // list of peer banks
   private int snapId = -1;                             // current snapshot ID
   private Random rnd = new Random();
@@ -127,6 +127,7 @@ public class Bank extends AbstractActor {
     // TODO 1: Save current balance and enter snapshot mode.
     this.capturedBalance = this.balance;
     this.stateBeingCaptured = true;
+    this.moneyInTransit = 0;
 
     //send token message to all other peers
     //so that also they start the snapshot procedure
