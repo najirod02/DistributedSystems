@@ -23,10 +23,15 @@ Here you can find the list of all proposed lab exercises:
 
     `NOTE`: In this case it is suggested to run the code with `gradle run | tee <name_file>.log`. More details in the next point.
 
-    - __Vsync check__<br/>
+    - __Vsync check_windows__<br/>
         A simple java class that automatically takes in input the log file generated from the snapshot exercise, simplify the verification phase.
 
+        `WARN`: For some reasons the linux solution doesn't work while the windows implementation is correct.
+
         `NOTE`: In this case you don't need gradle but simply java (after compiling the class with javac): `javac Check.class` and then `java Check <name_file>.log`
+
+- __2pc_exercise__<br/>
+    A gourp of nodes need to decide if commit or abort. The voting is reeuqested by a coordinaotr which will make the final decision based on the voting phase. Crashes and network delays might create some inconsistencies in the decision so proper solutions need to be implemented.
 
 # Authors
 

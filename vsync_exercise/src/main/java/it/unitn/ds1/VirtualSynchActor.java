@@ -21,22 +21,23 @@ public class VirtualSynchActor extends AbstractActor {
   private boolean joining;
 
   // participants (initial group, current and proposed views)
-  private final Set<ActorRef> group;
-  private final Set<ActorRef> currentView;
-  private final Map<Integer, Set<ActorRef>> proposedView;
+  private final Set<ActorRef> group;// composed by the nodes that should be in the view
+  private final Set<ActorRef> currentView;// the nodes that are actually up in the view, a subset of group
+  private final Map<Integer, Set<ActorRef>> proposedView;// the new view that needs to be installed
   private int viewId;
 
   // last sequence number for each node message (to avoid delivering duplicates)
-  private final Map<ActorRef, Integer> membersSeqno;
+  private final Map<ActorRef, Integer> membersSeqno;// ones the message is stable is put here
 
   // unstable messages
-  private final Set<ChatMsg> unstableMsgSet;
+  private final Set<ChatMsg> unstableMsgSet;// when i receive a message it is unstable, waiting for stable message from sender
 
   // deferred messages (of a future view)
-  private final Set<ChatMsg> deferredMsgSet;
+  private final Set<ChatMsg> deferredMsgSet;// messages that belongs to a future view and so need to be deferred
 
   // group view flushes
-  private final Map<Integer, Set<ActorRef>> flushes;
+  private final Map<Integer, Set<ActorRef>> flushes;// after sending all stable message, flush is sent by everyone in orer
+                                                    // to install new view
 
   private final Random rnd;
 
@@ -239,7 +240,7 @@ public class VirtualSynchActor extends AbstractActor {
       membersSeqno.put(m.sender, m.seqno);
       System.out.println(
               getSelf().path().name() + " delivers " + m.seqno
-              + " from " + m.sender.path().name() + " in view " + (deferred ? m.viewId : this.viewId) // TODO
+              + " from " + m.sender.path().name() + " in view " + (deferred ? m.viewId : this.viewId)
               + (deferred ? " (deferred)" : "")
       );
     }
@@ -457,6 +458,7 @@ public class VirtualSynchActor extends AbstractActor {
     // TODO (HINT) first, send all unstable messages
     // TODO (HINT) then, send flush messages for the PREVIOUS view
     // TODO (HINT) if you simulate a crash during a flush multicast, change the actor behavior
+    // propagate unstalbe messages
     for(ChatMsg unstableMsg : unstableMsgSet){
       boolean resend = unstableMsg.viewId == this.viewId;
       System.out.println(getSelf().path().name() + " may resend (" + resend + ") " + unstableMsg.seqno + " from " + unstableMsg.sender.path().name());
@@ -464,6 +466,8 @@ public class VirtualSynchActor extends AbstractActor {
         multicast(unstableMsg, proposedView.get(msg.viewId));
     }
     
+    // propagate flush message to install new view
+    // not this.viewId as nodes moght crash during the flush procedure or in any other case
     multicast(new ViewFlushMsg(msg.viewId-1), proposedView.get(msg.viewId));
 
     if(nextCrash.name().equals(CrashType.ViewFlushMsg.name())) {
